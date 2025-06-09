@@ -44,10 +44,10 @@ void MPCController::computeControl(const RigidBodyState& currentState, float F[4
 
     // Cost function: Q penalizes position error, R penalizes control effort
     Matrix<float, n_states, n_states> Q = Matrix<float, n_states, n_states>::Zero();
-    Q(0, 0) = Q(2, 2) = Q(4, 4) = 500.0f; // position weights
-    Q(1, 1) = Q(3, 3) = Q(5, 5) = 100.0f;  // velocity weights
+    Q(0, 0) = Q(2, 2) = Q(4, 4) = 50.0f; // position weights
+    Q(1, 1) = Q(3, 3) = Q(5, 5) = 10.0f;  // velocity weights
     Q(6, 6) = Q(8, 8) = Q(10, 10) = 50.0f; // φ, θ, ψ
-    Q(7, 7) = Q(9, 9) = Q(11, 11) = 5.0f; // φ̇, θ̇, ψ̇
+    Q(7, 7) = Q(9, 9) = Q(11, 11) = 10.0f; // φ̇, θ̇, ψ̇
 
     Matrix<float, n_inputs, n_inputs> R = Matrix<float, n_inputs, n_inputs>::Identity() * 0.01f;
 

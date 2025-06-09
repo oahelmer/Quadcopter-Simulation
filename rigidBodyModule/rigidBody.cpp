@@ -95,9 +95,9 @@ void drawBoxAt(const glm::vec3& position, float angleDeg, const glm::vec3& axis)
     glEnd();
 
     // Parameters for propeller boxes
-    float propWidth  = boxWidth / 4.0f;
-    float propHeight = boxHeight / 8.0f;
-    float propLength = boxLength / 4.0f;
+    float propWidth  = boxWidth / 3.0f;
+    float propHeight = boxHeight / 3.0f;
+    float propLength = boxLength / 8.0f;
 
     // Offsets for propellers in XY plane
     glm::vec3 offsets[] = {
@@ -308,9 +308,9 @@ void RigidBodySimulator::simulationLoop() {
             if(right){
                 right = false;
                 swapReferenceCounter = 0;
-                this->controller->setRef(std::vector<float>{1.0f, 1.0f, 1.0f});
+                this->controller->setRef(std::vector<float>{2.0f, 2.0f, 0.5f});
             }else{
-                this->controller->setRef(std::vector<float>{-1.0f, -1.0f, 1.0f});
+                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 2.0f});
                 right = true;
                 swapReferenceCounter = 0;
             }
@@ -354,7 +354,7 @@ void RigidBodySimulator::simulationLoop() {
             currentState.angleDeg = glm::length(glm::vec3(currentState.phi, currentState.theta, currentState.psi)) * 180.0f / 3.14159f;
         }
         
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000)));
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000))); // was 1000
     }
 }
 
