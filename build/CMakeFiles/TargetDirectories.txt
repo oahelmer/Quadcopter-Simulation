@@ -1,0 +1,3 @@
+/home/ole/Documents/modsim/sim/Quadcopter-Simulation/build/CMakeFiles/Simulation.dir
+/home/ole/Documents/modsim/sim/Quadcopter-Simulation/build/CMakeFiles/edit_cache.dir
+/home/ole/Documents/modsim/sim/Quadcopter-Simulation/build/CMakeFiles/rebuild_cache.dir
