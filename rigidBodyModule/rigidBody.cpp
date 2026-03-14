@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <vector>
+#include <fstream>
 
 
 void drawPosition() {
@@ -190,7 +191,7 @@ RigidBodySimulator::RigidBodySimulator() {
     currentState.rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     currentState.angleDeg = 0.0f;
     running = false;
-    controller = new MPCController(0.01f, 10);
+    controller = new MPCController(0.01f, 15);
 }
 
 RigidBodySimulator::~RigidBodySimulator() {
@@ -249,43 +250,31 @@ std::vector<float> RigidBodySimulator::rk4Integrate(const std::vector<float>& st
 }
 
 std::vector<float> RigidBodySimulator::derivatives(const std::vector<float>& s, const float F[4]) {
-    // State vector: [x, y, z, phi, theta, psi, x_dot, y_dot, z_dot, phi_dot, theta_dot, psi_dot]
     std::vector<float> d(s.size(), 0.0f);
     
-    // Extract state variables
     float x = s[0], y = s[1], z = s[2];
     float phi = s[3], theta = s[4], psi = s[5];
     float x_dot = s[6], y_dot = s[7], z_dot = s[8];
     float phi_dot = s[9], theta_dot = s[10], psi_dot = s[11];
     
-    // Sum of forces from propellers
     float F_sum = F[0] + F[1] + F[2] + F[3];
     
-    // Position derivatives (velocities)
-    d[0] = x_dot;  // dx/dt = x_dot
-    d[1] = y_dot;  // dy/dt = y_dot
-    d[2] = z_dot;  // dz/dt = z_dot
+    d[0] = x_dot; d[1] = y_dot; d[2] = z_dot;
+    d[3] = phi_dot; d[4] = theta_dot; d[5] = psi_dot;
     
-    // Angle derivatives (angular velocities)
-    d[3] = phi_dot;    // d(phi)/dt = phi_dot
-    d[4] = theta_dot;  // d(theta)/dt = theta_dot
-    d[5] = psi_dot;    // d(psi)/dt = psi_dot
+    d[6] = (F_sum / M) * (cosf(phi) * sinf(theta) * cosf(psi) + sinf(phi) * sinf(psi));
+    d[7] = (F_sum / M) * (cosf(phi) * sinf(theta) * sinf(psi) - sinf(phi) * cosf(psi));
+    d[8] = (F_sum / M) * (cosf(phi) * cosf(theta)) - G;
     
-    // Velocity derivatives (accelerations from equations)
-    d[6] = (F_sum / M) * (cosf(phi) * sinf(theta) * cosf(psi) + sinf(phi) * sinf(psi));  // d(x_dot)/dt
-    d[7] = (F_sum / M) * (cosf(phi) * sinf(theta) * sinf(psi) - sinf(phi) * cosf(psi));  // d(y_dot)/dt
-    d[8] = (F_sum / M) * (cosf(phi) * cosf(theta)) - G;                           // d(z_dot)/dt
-    
-    // Apply ground constraint penalty if z < LAMBDA
     if (z < LAMBDA) {
         float penalty = K_PENALTY * (LAMBDA - z);
-        d[8] += penalty / M;  // Add penalty force to z acceleration
+        d[8] += penalty / M;
     }
     
-    // Angular acceleration derivatives
-    d[9]  = (D / J) * (F[1] - F[3]);                    // d(phi_dot)/dt
-    d[10] = (D / J) * (F[2] - F[0]);                    // d(theta_dot)/dt
-    d[11] = (KAPPA / J) * (-F[0] + F[1] - F[2] + F[3]); // d(psi_dot)/dt
+    // MATCHED MOMENT MAPPING
+    d[9]  = (D / J) * (F[3] - F[2]);                    
+    d[10] = (D / J) * (F[0] - F[1]);                    
+    d[11] = (KAPPA / J) * (F[0] + F[1] - F[2] - F[3]); 
     
     return d;
 }
@@ -295,7 +284,12 @@ void RigidBodySimulator::simulationLoop() {
     float F[4] = {2.4525f, 2.4525f, 2.4525f, 2.4525f}; // Default forces to hover (mg/4)
     // float F[4] = {2.6525f, 2.4525f, 2.4525f, 2.4525f}; // To roll funnily away from the screen haha
     // float F[4] = {3.4525f, 3.4525f, 3.4525f, 3.4525f};
-    
+
+    // Open a file for logging
+    std::ofstream logFile("sim_data.csv");
+    logFile << "time,x,y,z,ref_x,ref_y,ref_z\n"; // Header
+    float currentTime = 0.0f;
+
     // used to swap between two references
     int swapReferenceCounter = 0;
     int right = 0;
@@ -304,25 +298,29 @@ void RigidBodySimulator::simulationLoop() {
 
         // this is used to swap between 2 references
         swapReferenceCounter += 1;
-        if(swapReferenceCounter == 100){
+        if(swapReferenceCounter == 200){
             if(right){
                 right = false;
                 swapReferenceCounter = 0;
-                this->controller->setRef(std::vector<float>{2.0f, 2.0f, 0.5f});
+                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
             }else{
-                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 2.0f});
+                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
                 right = true;
                 swapReferenceCounter = 0;
             }
         }
-
-
 
         // Get current state
         RigidBodyState state = getLatestState();
         
         // Compute control inputs using MPC
         controller->computeControl(state, F);
+
+        // LOG DATA HERE
+        logFile << currentTime << "," 
+                << state.position.x << "," << state.position.y << "," << state.position.z << ","
+                << controller->x_ref[0] << "," << controller->x_ref[1] << "," << controller->x_ref[2] << "\n";
+
         std::cout << "F: " << F[0] << ", " << F[1] << ", " << F[2] << ", " << F[3] << "     Position:" << state.position[0] << ", " << state.position[1] << ", " << state.position[2] << "      Ref:" << controller->x_ref[0] << ", " << controller->x_ref[1] << ", " << controller->x_ref[2] << std::endl;
         std::cout.flush();
         
@@ -337,7 +335,7 @@ void RigidBodySimulator::simulationLoop() {
         // Integrate using RK4
         std::vector<float> newState = rk4Integrate(stateVec, F, dt);
         
-        // Update state
+        // Update state with Fixed visualization
         {
             std::lock_guard<std::mutex> lock(stateMutex);
             currentState.position = glm::vec3(newState[0], newState[1], newState[2]);
@@ -349,13 +347,20 @@ void RigidBodySimulator::simulationLoop() {
             currentState.theta_dot = newState[10];
             currentState.psi_dot = newState[11];
             
-            // Update visualization parameters (simplified, adjust as needed)
-            currentState.rotationAxis = glm::normalize(glm::vec3(currentState.phi, currentState.theta, currentState.psi));
-            currentState.angleDeg = glm::length(glm::vec3(currentState.phi, currentState.theta, currentState.psi)) * 180.0f / 3.14159f;
+            // Safety check to prevent NaNs when drone is level
+            float angleLen = glm::length(glm::vec3(currentState.phi, currentState.theta, currentState.psi));
+            if (angleLen > 1e-6f) {
+                currentState.rotationAxis = glm::normalize(glm::vec3(currentState.phi, currentState.theta, currentState.psi));
+                currentState.angleDeg = angleLen * 180.0f / 3.14159f;
+            } else {
+                currentState.rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+                currentState.angleDeg = 0.0f;
+            }
         }
-        
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000))); // was 1000
+        currentTime += dt;
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000))); 
     }
+    logFile.close();
 }
 
 

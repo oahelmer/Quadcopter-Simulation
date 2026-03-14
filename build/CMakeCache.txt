@@ -215,9 +215,6 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
-//The directory containing a CMake configuration file for NLopt.
-NLopt_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/nlopt_cxx
-
 //Path to a file.
 OPENGL_EGL_INCLUDE_DIR:PATH=/usr/include
 
@@ -260,6 +257,12 @@ OPENGL_opengl_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libOpenGL.so
 //Path to a file.
 OPENGL_xmesa_INCLUDE_DIR:PATH=OPENGL_xmesa_INCLUDE_DIR-NOTFOUND
 
+//Arguments to supply to pkg-config
+PKG_CONFIG_ARGN:STRING=
+
+//pkg-config executable
+PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
+
 //Value Computed by CMake
 Simulation_BINARY_DIR:STATIC=/home/ole/Documents/modsim/sim/Quadcopter-Simulation/build
 
@@ -268,6 +271,9 @@ Simulation_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 Simulation_SOURCE_DIR:STATIC=/home/ole/Documents/modsim/sim/Quadcopter-Simulation
+
+//Path to a library.
+pkgcfg_lib_NLOPT_nlopt:FILEPATH=/usr/lib/x86_64-linux-gnu/libnlopt.so
 
 
 ########################
@@ -425,8 +431,45 @@ CMAKE_UNAME:INTERNAL=/usr/bin/uname
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding OpenGL
 FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[/usr/lib/x86_64-linux-gnu/libOpenGL.so][/usr/lib/x86_64-linux-gnu/libGLX.so][/usr/include][c ][v()]
+//Details about finding PkgConfig
+FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/usr/bin/pkg-config][v0.29.2()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
+NLOPT_CFLAGS:INTERNAL=-I/usr/include
+NLOPT_CFLAGS_I:INTERNAL=
+NLOPT_CFLAGS_OTHER:INTERNAL=
+NLOPT_FOUND:INTERNAL=1
+NLOPT_INCLUDEDIR:INTERNAL=/usr/include
+NLOPT_INCLUDE_DIRS:INTERNAL=/usr/include
+NLOPT_LDFLAGS:INTERNAL=-L/usr/lib;-lnlopt
+NLOPT_LDFLAGS_OTHER:INTERNAL=
+NLOPT_LIBDIR:INTERNAL=/usr/lib
+NLOPT_LIBRARIES:INTERNAL=nlopt
+NLOPT_LIBRARY_DIRS:INTERNAL=/usr/lib
+NLOPT_LIBS:INTERNAL=
+NLOPT_LIBS_L:INTERNAL=
+NLOPT_LIBS_OTHER:INTERNAL=
+NLOPT_LIBS_PATHS:INTERNAL=
+NLOPT_MODULE_NAME:INTERNAL=nlopt
+NLOPT_PREFIX:INTERNAL=/usr
+NLOPT_STATIC_CFLAGS:INTERNAL=-I/usr/include
+NLOPT_STATIC_CFLAGS_I:INTERNAL=
+NLOPT_STATIC_CFLAGS_OTHER:INTERNAL=
+NLOPT_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include
+NLOPT_STATIC_LDFLAGS:INTERNAL=-L/usr/lib;-lnlopt;-lm
+NLOPT_STATIC_LDFLAGS_OTHER:INTERNAL=
+NLOPT_STATIC_LIBDIR:INTERNAL=
+NLOPT_STATIC_LIBRARIES:INTERNAL=nlopt;m
+NLOPT_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib
+NLOPT_STATIC_LIBS:INTERNAL=
+NLOPT_STATIC_LIBS_L:INTERNAL=
+NLOPT_STATIC_LIBS_OTHER:INTERNAL=
+NLOPT_STATIC_LIBS_PATHS:INTERNAL=
+NLOPT_VERSION:INTERNAL=2.7.1
+NLOPT_nlopt_INCLUDEDIR:INTERNAL=
+NLOPT_nlopt_LIBDIR:INTERNAL=
+NLOPT_nlopt_PREFIX:INTERNAL=
+NLOPT_nlopt_VERSION:INTERNAL=
 //ADVANCED property for variable: OPENGL_EGL_INCLUDE_DIR
 OPENGL_EGL_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: OPENGL_GLES2_INCLUDE_DIR
@@ -455,10 +498,19 @@ OPENGL_glx_LIBRARY-ADVANCED:INTERNAL=1
 OPENGL_opengl_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: OPENGL_xmesa_INCLUDE_DIR
 OPENGL_xmesa_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PKG_CONFIG_ARGN
+PKG_CONFIG_ARGN-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PKG_CONFIG_EXECUTABLE
+PKG_CONFIG_EXECUTABLE-ADVANCED:INTERNAL=1
 //linker supports push/pop state
 _CMAKE_CXX_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //linker supports push/pop state
 _CMAKE_C_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
+__pkg_config_arguments_NLOPT:INTERNAL=REQUIRED;nlopt
+__pkg_config_checked_NLOPT:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_NLOPT_nlopt
+pkgcfg_lib_NLOPT_nlopt-ADVANCED:INTERNAL=1
+prefix_result:INTERNAL=/usr/lib
 

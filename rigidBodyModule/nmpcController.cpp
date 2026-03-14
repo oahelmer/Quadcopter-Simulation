@@ -1,107 +1,127 @@
 #include "nmpcController.h"
 #include "rigidBody.h"
+#include <iostream>
 
 using namespace Eigen;
 
 MPCController::MPCController(float dt, int horizon) : dt(dt), N(horizon) {
-    x_ref.resize(3, 0.0f); // Reference for x, y, z
+    x_ref.resize(3, 0.0f);
 }
 
 void MPCController::setRef(const std::vector<float>& ref) {
     x_ref = ref;
 }
 
-void MPCController::computeControl(const RigidBodyState& currentState, float F[4]) {
-    constexpr int n_states = 12;
-    constexpr int n_inputs = 4;
+// Predict next state using RK4 (Matches Equations 16-21)
+std::vector<float> MPCController::dynamics(const std::vector<float>& s, const double F[4]) {
+    std::vector<float> d(12, 0.0f);
+    float phi = s[3], theta = s[4], psi = s[5];
+    float x_dot = s[6], y_dot = s[7], z_dot = s[8];
+    float phi_dot = s[9], theta_dot = s[10], psi_dot = s[11];
+    float F_sum = F[0] + F[1] + F[2] + F[3];
 
-    // Continuous-time A and B matrices
-    Matrix<float, n_states, n_states> A = Matrix<float, n_states, n_states>::Zero();
-    Matrix<float, n_states, n_inputs> B = Matrix<float, n_states, n_inputs>::Zero();
+    d[0] = x_dot; d[1] = y_dot; d[2] = z_dot;
+    d[3] = phi_dot; d[4] = theta_dot; d[5] = psi_dot;
 
-    A(0, 1) = 1;
-    A(1, 8) = G / M;
-    A(2, 3) = 1;
-    A(3, 6) = -G / M;
-    A(4, 5) = 1;
-    A(6, 7) = 1;
-    A(8, 9) = 1;
-    A(10, 11) = 1;
+    // Linear accelerations (Matches Equations 16-18)
+    d[6] = (F_sum / M) * (cosf(phi) * sinf(theta) * cosf(psi) + sinf(phi) * sinf(psi));
+    d[7] = (F_sum / M) * (cosf(phi) * sinf(theta) * sinf(psi) - sinf(phi) * cosf(psi));
+    d[8] = (F_sum / M) * (cosf(phi) * cosf(theta)) - G;
 
-    B(5, 0) = B(5, 1) = B(5, 2) = B(5, 3) = 1.0f / M;
-    B(7, 1) = D / J;
-    B(7, 3) = -D / J;
-    B(9, 0) = -D / J;
-    B(9, 2) = D / J;
-    B(11, 0) = -KAPPA / J;
-    B(11, 1) = KAPPA / J;
-    B(11, 2) = -KAPPA / J;
-    B(11, 3) = KAPPA / J;
+    // CORRECTED MOMENT MAPPING:
+    // Roll (phi) is rotation around X. Uses motors on Y axis (2 and 3).
+    // Pitch (theta) is rotation around Y. Uses motors on X axis (0 and 1).
+    d[9]  = (D / J) * (F[3] - F[2]);                    // Roll: Left - Right
+    d[10] = (D / J) * (F[0] - F[1]);                    // Pitch: Front - Back
+    d[11] = (KAPPA / J) * (F[0] + F[1] - F[2] - F[3]); // Yaw: CCW - CW pairs
+    return d;
+}
 
-    // Discretize A, B (Euler)
-    Matrix<float, n_states, n_states> Ad = Matrix<float, n_states, n_states>::Identity() + A * dt;
-    Matrix<float, n_states, n_inputs> Bd = B * dt;
+// RK4 Implementation
+std::vector<float> MPCController::rk4_step(const std::vector<float>& s, const double F[4], float dt) {
+    auto k1 = dynamics(s, F);
+    std::vector<float> s2(12), s3(12), s4(12);
+    for(int i=0; i<12; ++i) s2[i] = s[i] + 0.5f * dt * k1[i];
+    auto k2 = dynamics(s2, F);
+    for(int i=0; i<12; ++i) s3[i] = s[i] + 0.5f * dt * k2[i];
+    auto k3 = dynamics(s3, F);
+    for(int i=0; i<12; ++i) s4[i] = s[i] + dt * k3[i];
+    auto k4 = dynamics(s4, F);
+    
+    std::vector<float> next_s(12);
+    for(int i=0; i<12; ++i) next_s[i] = s[i] + (dt/6.0f)*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]);
+    return next_s;
+}
 
-    // Cost function: Q penalizes position error, R penalizes control effort
-    Matrix<float, n_states, n_states> Q = Matrix<float, n_states, n_states>::Zero();
-    Q(0, 0) = Q(2, 2) = Q(4, 4) = 50.0f; // position weights
-    Q(1, 1) = Q(3, 3) = Q(5, 5) = 10.0f;  // velocity weights
-    Q(6, 6) = Q(8, 8) = Q(10, 10) = 50.0f; // φ, θ, ψ
-    Q(7, 7) = Q(9, 9) = Q(11, 11) = 10.0f; // φ̇, θ̇, ψ̇
+// Objective Function (Equation 58)
+double MPCController::cost_function(const std::vector<double>& u_vec, std::vector<double>& grad, void* data) {
+    // Gradient check: COBYLA is gradient-free, so grad should be empty.
+    if (!grad.empty()) return 0.0; 
 
-    Matrix<float, n_inputs, n_inputs> R = Matrix<float, n_inputs, n_inputs>::Identity() * 0.01f;
+    MPCData* mpcData = static_cast<MPCData*>(data);
+    std::vector<float> s = {
+        mpcData->currentState->position.x, mpcData->currentState->position.y, mpcData->currentState->position.z,
+        mpcData->currentState->phi, mpcData->currentState->theta, mpcData->currentState->psi,
+        mpcData->currentState->velocity.x, mpcData->currentState->velocity.y, mpcData->currentState->velocity.z,
+        mpcData->currentState->phi_dot, mpcData->currentState->theta_dot, mpcData->currentState->psi_dot
+    };
 
-    // Solve Discrete Algebraic Riccati Equation (DARE)
-    Matrix<float, n_states, n_states> P = Q; // Initial guess
-    Matrix<float, n_states, n_states> P_next;
-    constexpr int max_iter = 1000;
-    constexpr float tol = 1e-6f;
+    double cost = 0.0;
+    for (int t = 0; t < mpcData->N; ++t) {
+        double F_step[4] = {u_vec[t*4], u_vec[t*4+1], u_vec[t*4+2], u_vec[t*4+3]};
+        s = rk4_step(s, F_step, mpcData->dt);
 
-    for (int i = 0; i < max_iter; ++i) {
-        Matrix<float, n_states, n_states> temp = Bd * R.inverse() * Bd.transpose() * P;
-        Matrix<float, n_states, n_states> M = Matrix<float, n_states, n_states>::Identity() + temp;
-        P_next = Q + Ad.transpose() * P * M.inverse() * Ad;
+        // Penalty for position error
+        // Separate Z-weight from X and Y
+        float weightXY = 300.0f;
+        float weightZ = 300.0f; // Increase this significantly
+
+        cost += weightXY * (pow(s[0] - (*mpcData->x_ref)[0], 2) + 
+                            pow(s[1] - (*mpcData->x_ref)[1], 2));
+        cost += weightZ * pow(s[2] - (*mpcData->x_ref)[2], 2);
+
+        // ADD DAMPING (Velocity Penalty)
+        // This is what stops the oscillations!
+        double dampingWeight = 40.0;
+        cost += dampingWeight * (pow(s[6], 2) + pow(s[7], 2) + pow(s[8], 2));
+
+        // Penalty for high angles (stability)
+        cost += 50.0 * (pow(s[3], 2) + pow(s[4], 2) + pow(s[5], 2));
+
+        // R Matrix: Penalty for control effort (deviation from hover)
+        for(int i=0; i<4; ++i) cost += 0.01 * pow(F_step[i] - (M * G / 4.0), 2);
         
-        if ((P_next - P).norm() < tol) {
-            P = P_next;
-            break;
-        }
-        P = P_next;
+        // Ground constraint
+        if (s[2] < LAMBDA) cost += 5000.0 * pow(LAMBDA - s[2], 2);
     }
+    return cost;
+}
 
-    // Compute feedback gain K
-    Matrix<float, n_inputs, n_states> K = (R.inverse() * Bd.transpose() * P * (Matrix<float, n_states, n_states>::Identity() + Bd * R.inverse() * Bd.transpose() * P).inverse() * Ad);
+void MPCController::computeControl(const RigidBodyState& currentState, float F[4]) {
+    // SWITCH TO LN_COBYLA (Local Non-derivative)
+    nlopt::opt opt(nlopt::LN_COBYLA, 4 * N); 
+    MPCData data = {&currentState, &x_ref, dt, N};
+    
+    opt.set_min_objective(MPCController::cost_function, &data);
+    
+    // Constraints
+    std::vector<double> lb(4 * N, 0.0);
+    std::vector<double> ub(4 * N, 15.0);
+    opt.set_lower_bounds(lb);
+    opt.set_upper_bounds(ub);
 
-    // Current state
-    Vector<float, n_states> x0;
-    x0 << currentState.position.x,
-          currentState.velocity.x,
-          currentState.position.y,
-          currentState.velocity.y,
-          currentState.position.z,
-          currentState.velocity.z,
-          currentState.phi,
-          currentState.phi_dot,
-          currentState.theta,
-          currentState.theta_dot,
-          currentState.psi,
-          currentState.psi_dot;
+    opt.set_xtol_rel(1e-3);
+    opt.set_maxeval(500); // Increased evaluations for better convergence
 
-    // Reference state (only position and angles)
-    Vector<float, n_states> x_des = Vector<float, n_states>::Zero();
-    x_des(0) = x_ref[0];
-    x_des(2) = x_ref[1];
-    x_des(4) = x_ref[2];
-    x_des(6) = 0.0f; // φ reference
-    x_des(8) = 0.0f; // θ reference
-    x_des(10) = 0.0f; // ψ reference
+    // Start from hover
+    std::vector<double> u_vec(4 * N, M * G / 4.0);
+    double min_f;
 
-    // Compute control input: u = -K * (x - x_des)
-    Vector<float, n_inputs> u = -K * (x0 - x_des);
-
-    // Limit forces
-    for (int i = 0; i < 4; ++i) {
-        u(i) = std::max(0.0f, std::min(u(i), 15.0f));
-        F[i] = u(i);
+    try {
+        opt.optimize(u_vec, min_f);
+        // Apply only the first control action
+        for (int i = 0; i < 4; ++i) F[i] = static_cast<float>(u_vec[i]); 
+    } catch (std::exception &e) {
+        for (int i = 0; i < 4; ++i) F[i] = M * G / 4.0f;
     }
 }

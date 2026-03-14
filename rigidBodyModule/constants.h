@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 // Constants
 const float M = 0.5f;     // Mass of quadcopter (kg)
-const float J = 0.001f;    // Moment of inertia (kg·m²)
+const float J = 0.01f;    // Moment of inertia (kg·m²)
 const float G = 9.81f;    // Gravity (m/s²)
 const float D = 0.4f;     // Propeller arm length (m)
 const float LAMBDA = 0.0f;// Ground height (m)

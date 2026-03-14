@@ -25,8 +25,8 @@ int main() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     // Set the viewing direction: looking from the x-direction with y to the right and z upwards
-    gluLookAt(5.0, 0.0, 0.0,   // Eye position (along the x-axis)
-              0.0, 0.0, 0.0,   // Look at origin
+    gluLookAt(5.0, 0.0, 2.0,   // Eye position (along the x-axis)
+              0.0, 0.0, 2.0,   // Look at origin
               0.0, 0.0, 1.0);  // Up vector (z-axis upwards)
 
 
@@ -63,6 +63,13 @@ int main() {
         // Drawing happens here...
         RigidBodyState state = simulator.getLatestState();
         drawBoxAt(state.position, state.angleDeg, state.rotationAxis);
+
+        //Draw the two reference points
+        // Draw first box at {0.0f, 0.0f, 1.5f}
+        //drawBoxAt(glm::vec3(0.0f, 0.0f, 1.5f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        // Draw second box at {-3.0f, -3.0f, 1.3f}
+        //drawBoxAt(glm::vec3(-3.0f, -3.0f, 1.3f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
