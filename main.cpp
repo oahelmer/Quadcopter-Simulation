@@ -4,6 +4,21 @@
 #include "rigidBody.h"
 
 
+void drawCirclePath(float radius, float z) {
+    glLineWidth(2.0f); // Make the line a bit thicker
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0f, 1.0f, 0.0f); // Green path
+    
+    for (int i = 0; i < 100; i++) {
+        float theta = 2.0f * 3.1415926f * float(i) / 100.0f;
+        float x = radius * cosf(theta);
+        float y = radius * sinf(theta);
+        glVertex3f(x, y, z);
+    }
+    glEnd();
+    glLineWidth(1.0f); // Reset line width
+}
+
 int main() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW\n";
@@ -25,7 +40,7 @@ int main() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     // Set the viewing direction: looking from the x-direction with y to the right and z upwards
-    gluLookAt(5.0, 0.0, 2.0,   // Eye position (along the x-axis)
+    gluLookAt(5.0, 0.0, 3.0,   // Eye position (along the x-axis)
               0.0, 0.0, 2.0,   // Look at origin
               0.0, 0.0, 1.0);  // Up vector (z-axis upwards)
 
@@ -61,6 +76,8 @@ int main() {
 
 
         // Drawing happens here...
+        drawCirclePath(2.0f, 2.0f);
+
         RigidBodyState state = simulator.getLatestState();
         drawBoxAt(state.position, state.angleDeg, state.rotationAxis);
 

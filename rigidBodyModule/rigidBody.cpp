@@ -297,24 +297,40 @@ void RigidBodySimulator::simulationLoop() {
     int swapReferenceCounter = 0;
     int right = 0;
 
+    // --- CIRCLE PARAMETERS ---
+    float radius = 2.0f;       // Radius in meters
+    float speed = 1.0f;        // Linear speed in m/s
+    float altitude = 2.0f;     // Fixed height
+    // -------------------------
+
     while (running) {
 
         // 2. Set the target time for the NEXT iteration
         next_tick += std::chrono::microseconds(static_cast<int>(dt * 1000000));
 
         // this is used to swap between 2 references
-        swapReferenceCounter += 1;
-        if(swapReferenceCounter == 200){
-            if(right){
-                right = false;
-                swapReferenceCounter = 0;
-                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
-            }else{
-                this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
-                right = true;
-                swapReferenceCounter = 0;
-            }
-        }
+        // swapReferenceCounter += 1;
+        // if(swapReferenceCounter == 200){
+        //     if(right){
+        //         right = false;
+        //         swapReferenceCounter = 0;
+        //         this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
+        //     }else{
+        //         this->controller->setRef(std::vector<float>{-3.0f, -3.0f, 1.5f});
+        //         right = true;
+        //         swapReferenceCounter = 0;
+        //     }
+        // }
+
+        // code for path following a sircle
+        // angle = (speed / radius) * time
+        float angle = (speed / radius) * currentTime;
+        
+        float targetX = radius * cosf(angle);
+        float targetY = radius * sinf(angle);
+
+        // Update the NMPC reference
+        this->controller->setRef(std::vector<float>{targetX, targetY, altitude});
 
         // Get current state
         RigidBodyState state = getLatestState();

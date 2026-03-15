@@ -73,7 +73,7 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
 
         // Penalty for position error
         // Separate Z-weight from X and Y
-        float weightXY = 300.0f;
+        float weightXY = 400.0f;
         float weightZ = 250.0f; // Increase this significantly
 
         cost += weightXY * (pow(s[0] - (*mpcData->x_ref)[0], 2) + 
