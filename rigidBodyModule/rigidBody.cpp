@@ -191,7 +191,7 @@ RigidBodySimulator::RigidBodySimulator() {
     currentState.rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     currentState.angleDeg = 0.0f;
     running = false;
-    controller = new MPCController(0.01f, 15);
+    controller = new MPCController(0.01f, 10);
 }
 
 RigidBodySimulator::~RigidBodySimulator() {
@@ -290,11 +290,17 @@ void RigidBodySimulator::simulationLoop() {
     logFile << "time,x,y,z,ref_x,ref_y,ref_z\n"; // Header
     float currentTime = 0.0f;
 
+    // 1. Initialize the time point
+    auto next_tick = std::chrono::steady_clock::now();
+
     // used to swap between two references
     int swapReferenceCounter = 0;
     int right = 0;
 
     while (running) {
+
+        // 2. Set the target time for the NEXT iteration
+        next_tick += std::chrono::microseconds(static_cast<int>(dt * 1000000));
 
         // this is used to swap between 2 references
         swapReferenceCounter += 1;
@@ -358,7 +364,8 @@ void RigidBodySimulator::simulationLoop() {
             }
         }
         currentTime += dt;
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000))); 
+        // 3. Sleep only for the remaining time in the budget
+        std::this_thread::sleep_until(next_tick);
     }
     logFile.close();
 }

@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/Simulation.dir/main.cpp.o CMakeFiles/Simulation.dir/rigidBodyModule/rigidBody.cpp.o CMakeFiles/Simulation.dir/rigidBodyModule/nmpcController.cpp.o -o Simulation  /usr/lib/x86_64-linux-gnu/libGL.so -lglfw -lGLEW -lGLU -lnlopt
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/Simulation.dir/main.cpp.o CMakeFiles/Simulation.dir/rigidBodyModule/rigidBody.cpp.o CMakeFiles/Simulation.dir/rigidBodyModule/nmpcController.cpp.o -o Simulation  /usr/lib/x86_64-linux-gnu/libGL.so -lglfw -lGLEW -lGLU -lnlopt

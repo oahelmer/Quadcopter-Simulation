@@ -74,7 +74,7 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
         // Penalty for position error
         // Separate Z-weight from X and Y
         float weightXY = 300.0f;
-        float weightZ = 300.0f; // Increase this significantly
+        float weightZ = 250.0f; // Increase this significantly
 
         cost += weightXY * (pow(s[0] - (*mpcData->x_ref)[0], 2) + 
                             pow(s[1] - (*mpcData->x_ref)[1], 2));
@@ -82,7 +82,7 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
 
         // ADD DAMPING (Velocity Penalty)
         // This is what stops the oscillations!
-        double dampingWeight = 40.0;
+        double dampingWeight = 30.0;
         cost += dampingWeight * (pow(s[6], 2) + pow(s[7], 2) + pow(s[8], 2));
 
         // Penalty for high angles (stability)
@@ -100,6 +100,12 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
 void MPCController::computeControl(const RigidBodyState& currentState, float F[4]) {
     // SWITCH TO LN_COBYLA (Local Non-derivative)
     nlopt::opt opt(nlopt::LN_COBYLA, 4 * N); 
+
+    // Initialize last_u if it's empty
+    if(last_u.size() != 4 * N) {
+        last_u.assign(4 * N, M * G / 4.0);
+    }
+
     MPCData data = {&currentState, &x_ref, dt, N};
     
     opt.set_min_objective(MPCController::cost_function, &data);
@@ -111,7 +117,7 @@ void MPCController::computeControl(const RigidBodyState& currentState, float F[4
     opt.set_upper_bounds(ub);
 
     opt.set_xtol_rel(1e-3);
-    opt.set_maxeval(500); // Increased evaluations for better convergence
+    opt.set_maxeval(100); // Increased evaluations for better convergence
 
     // Start from hover
     std::vector<double> u_vec(4 * N, M * G / 4.0);

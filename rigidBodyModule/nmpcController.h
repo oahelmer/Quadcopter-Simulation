@@ -34,6 +34,7 @@ private:
 
     // NLopt objective function
     static double cost_function(const std::vector<double>& u_vec, std::vector<double>& grad, void* data);
+    std::vector<double> last_u;
 };
 
 #endif
