@@ -5,6 +5,7 @@ Read the pdf called ReadMeAlso.pdf for the explanation.
 
 ![Simulation running](dronesimvidreadme-ezgif.com-video-to-gif-converter.gif)
 
+This is not path following but point reference following where the referece moves along the path. this is why the drone follows the path on the inside.
 ---
 
 
