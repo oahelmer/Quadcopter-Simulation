@@ -28,7 +28,6 @@ std::vector<float> MPCController::dynamics(const std::vector<float>& s, const do
     d[7] = (F_sum / M) * (cosf(phi) * sinf(theta) * sinf(psi) - sinf(phi) * cosf(psi));
     d[8] = (F_sum / M) * (cosf(phi) * cosf(theta)) - G;
 
-    // CORRECTED MOMENT MAPPING:
     // Roll (phi) is rotation around X. Uses motors on Y axis (2 and 3).
     // Pitch (theta) is rotation around Y. Uses motors on X axis (0 and 1).
     d[9]  = (D / J) * (F[3] - F[2]);                    // Roll: Left - Right
@@ -81,7 +80,7 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
         cost += weightZ * pow(s[2] - (*mpcData->x_ref)[2], 2);
 
         // ADD DAMPING (Velocity Penalty)
-        // This is what stops the oscillations!
+        // This is what stops the oscillations
         double dampingWeight = 30.0;
         cost += dampingWeight * (pow(s[6], 2) + pow(s[7], 2) + pow(s[8], 2));
 
@@ -98,7 +97,7 @@ double MPCController::cost_function(const std::vector<double>& u_vec, std::vecto
 }
 
 void MPCController::computeControl(const RigidBodyState& currentState, float F[4]) {
-    // SWITCH TO LN_COBYLA (Local Non-derivative)
+    //  LN_COBYLA (Local Non-derivative)
     nlopt::opt opt(nlopt::LN_COBYLA, 4 * N); 
 
     // Initialize last_u if it's empty
